@@ -16,28 +16,18 @@ public class Main {
     final String CRLF = "\r\n";
     //  Uncomment this block to pass the first stage
         ServerSocket serverSocket;
-        Socket clientSocket = null;
         int port = 6379;
         try {
           serverSocket = new ServerSocket(port);
           serverSocket.setReuseAddress(true);
           while (true){
               // Wait for connection from client.
-              clientSocket = serverSocket.accept();
-              BufferedReader in = new BufferedReader( new InputStreamReader(clientSocket.getInputStream()));
-              BufferedWriter out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
+              Socket clientSocket = serverSocket.accept();
               executorService.execute(() -> {
                   try {
-                  String inputLine;
-                  while ((inputLine = in.readLine()) != null){
-                      if (inputLine.toLowerCase().contains("ping")){
-                          logger.info(Thread.currentThread().getName());
-                          out.write("+PONG"+CRLF);
-                          out.flush();
-                      }
-                  }}
-                  catch (IOException e){
-                      System.out.println("Exception caught in thread:" + Thread.currentThread().getName() + ", exception: " + e.getMessage());
+                      new RedisClient(clientSocket);
+                  } catch (IOException e) {
+                      throw new RuntimeException(e);
                   }
               });
           }
@@ -45,15 +35,6 @@ public class Main {
         } catch (IOException e) {
             logger.throwing(Main.class.toString(), "main", new IOException());
           System.out.println("IOException: " + e.getMessage());
-        } finally {
-          try {
-            if (clientSocket != null) {
-              clientSocket.close();
-            }
-          } catch (IOException e) {
-              logger.throwing(Main.class.toString(), "main", new IOException());
-            System.out.println("IOException: " + e.getMessage());
-          }
         }
   }
 }

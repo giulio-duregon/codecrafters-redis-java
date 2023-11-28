@@ -20,8 +20,11 @@ public class Main {
             BufferedWriter out = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
             String inputLine;
             while ((inputLine = in.readLine()) != null){
-                out.write("+PONG"+CRLF);
-                out.flush();
+                if (inputLine.toLowerCase().contains("ping")){
+                    out.write("+PONG"+CRLF);
+                    out.flush();
+                }
+
 
             }
         } catch (IOException e) {

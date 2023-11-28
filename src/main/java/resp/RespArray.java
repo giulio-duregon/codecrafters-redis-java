@@ -11,6 +11,10 @@ public record RespArray(List<RespData> dataArray) implements RespData{
         return "[" + dataArray.stream().map(RespData::toString).collect(Collectors.joining(",")) + "]";
     }
 
+    public RespBulkString popFront(){
+        return (RespBulkString) dataArray.remove(0);
+    }
+
     @Override
     public String toRespString() {
         return "*" + dataArray.size() + CRLF +

@@ -1,14 +1,13 @@
-import resp.RedisCommands;
-import resp.RespBulkString;
-import resp.RespData;
+import resp.*;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static resp.RedisCommands.*;
-import static resp.RespConstants.CRLF;
+import static resp.RespConstants.NULLBULKRESP;
 import static resp.RespConstants.PONG;
 
 public class RedisClient implements Runnable{
@@ -23,13 +22,15 @@ public class RedisClient implements Runnable{
     }
 
     private RedisCommands parseCommand(String data){
-        String commandString = data;
+        String commandString = data.toLowerCase();
         RedisCommands command;
-        switch (commandString.toLowerCase()){
-            case "ping" -> command = PING;
-            case "echo" -> command = ECHO;
-            default -> command = INVALD;
+        if (commandString.equals("ping")){
+            command = PING;
         }
+        else if (commandString.equals("echo")){
+            command = ECHO;
+        }
+        else {command = INVALID;}
         logger.log(Level.INFO, "Parsed String: %s Command: %s".formatted(commandString, command));
         return command;
     }
@@ -42,23 +43,52 @@ public class RedisClient implements Runnable{
         write(PONG);
     }
 
-    private void handleEcho() throws IOException{
-        RespBulkString input = new RespBulkString(in.readLine());
-        write(input);
+    private void handleEcho(RespData response) throws IOException{
+        write(response);
     }
-    private void handleCommand(RedisCommands command) throws IOException {
+    private void handleCommand(RedisCommands command, RespArray commandArray) throws IOException {
     switch (command){
         case PING -> handlePing();
-        case ECHO -> handleEcho();
+        case ECHO -> handleEcho(commandArray.popFront());
+        }
     }
+
+    private RespArray parseRespArray(int size) throws IOException {
+        ArrayList<RespData> arr = new ArrayList<>();
+        String inputLine;
+        for(int i =0; i < size; i++){
+            inputLine = in.readLine();
+            arr.add(parse(inputLine));
+        }
+        return new RespArray(arr);
     }
+
+    private RespData parse(String s) throws IOException{
+        RespData request;
+        switch (s.charAt(0)){
+            // Resp Simple String
+            case '+' -> request = new RespSimpleString(s.substring(1,s.length()-2));
+            // Resp Bulk String
+            case '$' -> request = new RespBulkString(in.readLine());
+            case '*' -> request = parseRespArray(Character.getNumericValue(s.charAt(1)));
+            default -> request = NULLBULKRESP;
+        }
+        return request;
+    }
+
     public void run() {
         try {
             String inputLine;
             RedisCommands command;
+            int i = 0;
             while ((inputLine = in.readLine()) != null){
-                    command = parseCommand(inputLine);
-                    handleCommand(command);
+                if (inputLine.isEmpty()){
+                    continue;
+                }
+                    RespArray commandArray = (RespArray) parse(inputLine);
+                    RespBulkString rawCommand = commandArray.popFront();
+                    command = parseCommand(rawCommand.inputString());
+                    handleCommand(command, commandArray);
                 }
             } catch (IOException e){
                 logger.log(Level.SEVERE, "Failed during run in Thread "

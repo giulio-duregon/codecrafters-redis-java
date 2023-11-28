@@ -13,7 +13,6 @@ public class Main {
 
     ExecutorService executorService = Executors.newCachedThreadPool();
 
-    final String CRLF = "\r\n";
     //  Uncomment this block to pass the first stage
         ServerSocket serverSocket;
         int port = 6379;
@@ -25,7 +24,7 @@ public class Main {
               Socket clientSocket = serverSocket.accept();
               executorService.execute(() -> {
                   try {
-                      new RedisClient(clientSocket);
+                      new RedisClient(clientSocket).run();
                   } catch (IOException e) {
                       throw new RuntimeException(e);
                   }

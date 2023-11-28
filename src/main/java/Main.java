@@ -24,8 +24,6 @@ public class Main {
                     out.write("+PONG"+CRLF);
                     out.flush();
                 }
-
-
             }
         } catch (IOException e) {
           System.out.println("IOException: " + e.getMessage());

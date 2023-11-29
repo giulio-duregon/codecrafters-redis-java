@@ -63,7 +63,8 @@ public class RedisClient implements Runnable {
 
     private boolean keyExpired(RespData key) {
         Instant value = this.keyExpiry.get(key);
-        if (value != null || value.isBefore(Instant.now())) {
+        if (value != null && value.isBefore(Instant.now())) {
+            logger.log(Level.INFO, "Removing Expired Key: %s".formatted(key.toString()));
             this.db.remove(key);
             this.keyExpiry.remove(key);
             return true;
@@ -117,6 +118,7 @@ public class RedisClient implements Runnable {
 
         // Check if there are additional optional arguments for time expiry
         if (moreArgsPresent(commandArray)) {
+            System.out.println("In if in handleSet");
             String unit = commandArray.popFront().inputString();
             Instant expTime = getKeyExpireTime(commandArray, unit.toLowerCase()).plusMillis(Instant.now().toEpochMilli());
             logger.log(Level.INFO, "Adding key %s value %s with expiry %d".formatted(key.toString(), value.toString(), expTime.toEpochMilli()));

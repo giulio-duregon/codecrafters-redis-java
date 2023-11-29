@@ -3,22 +3,26 @@ import resp.*;
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static resp.RedisCommands.*;
-import static resp.RespConstants.NULLBULKRESP;
-import static resp.RespConstants.PONG;
+import static resp.RespConstants.*;
 
 public class RedisClient implements Runnable{
     private final Logger logger = Logger.getLogger(RedisClient.class + "-Thread-" + Thread.currentThread().getName());
     private final Socket socket;
     private final BufferedReader in;
     private final BufferedWriter out;
-    public RedisClient(Socket socket) throws IOException {
+
+    private final ConcurrentHashMap<RespData, RespData> db;
+
+    public RedisClient(Socket socket,ConcurrentHashMap<RespData, RespData> db) throws IOException {
         this.socket = socket;
         this.in = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
         this.out = new BufferedWriter(new OutputStreamWriter(this.socket.getOutputStream()));
+        this.db = db;
     }
 
     private RedisCommands parseCommand(String data){
@@ -26,9 +30,12 @@ public class RedisClient implements Runnable{
         RedisCommands command;
         if (commandString.equals("ping")){
             command = PING;
-        }
-        else if (commandString.equals("echo")){
+        } else if (commandString.equals("echo")){
             command = ECHO;
+        } else if (commandString.equals("get")){
+            command = GET;
+        } else if (commandString.equals("set")){
+        command = SET;
         }
         else {command = INVALID;}
         logger.log(Level.INFO, "Parsed String: %s Command: %s".formatted(commandString, command));
@@ -46,10 +53,30 @@ public class RedisClient implements Runnable{
     private void handleEcho(RespData response) throws IOException{
         write(response);
     }
+
+    private void handleGet(RespData key) throws IOException {
+        logger.log(Level.FINE, "Handling GET operation for key %s".formatted(key.toString()));
+        RespData value = db.get(key);
+        if (value == null){
+            value = NULLBULKRESP;
+        }
+        write(value);
+    }
+    private void handleSet(RespData key, RespData value){
+        logger.log(Level.FINE, "Handling SET operation for key %s, Value %s".formatted(key.toString(), value.toString()));
+        try {
+            db.put(key, value);
+            write(OK);
+        } catch (IOException e) {
+            throw new RuntimeException(e + " Failed during handleSet");
+        }
+    }
     private void handleCommand(RedisCommands command, RespArray commandArray) throws IOException {
     switch (command){
         case PING -> handlePing();
         case ECHO -> handleEcho(commandArray.popFront());
+        case SET -> handleSet(commandArray.popFront(), commandArray.popFront());
+        case GET -> handleGet(commandArray.popFront());
         }
     }
 

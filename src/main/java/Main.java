@@ -1,6 +1,9 @@
+import resp.RespData;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
@@ -17,6 +20,7 @@ public class Main {
         ServerSocket serverSocket;
         int port = 6379;
         try {
+            ConcurrentHashMap<RespData, RespData> db = new ConcurrentHashMap<>();
           serverSocket = new ServerSocket(port);
           serverSocket.setReuseAddress(true);
           while (true){
@@ -24,7 +28,7 @@ public class Main {
               Socket clientSocket = serverSocket.accept();
               executorService.execute(() -> {
                   try {
-                      new RedisClient(clientSocket).run();
+                      new RedisClient(clientSocket, db).run();
                   } catch (IOException e) {
                       throw new RuntimeException(e);
                   }

@@ -118,7 +118,7 @@ public class RedisClient implements Runnable {
         // Check if there are additional optional arguments for time expiry
         if (moreArgsPresent(commandArray)) {
             String unit = commandArray.popFront().inputString();
-            Instant expTime = getKeyExpireTime(commandArray, unit.toLowerCase());
+            Instant expTime = getKeyExpireTime(commandArray, unit.toLowerCase()).plusMillis(Instant.now().toEpochMilli());
             logger.log(Level.INFO, "Adding key %s value %s with expiry %d".formatted(key.toString(), value.toString(), expTime.toEpochMilli()));
             Set(key, value, expTime);
             return;

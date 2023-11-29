@@ -119,9 +119,11 @@ public class RedisClient implements Runnable {
         if (moreArgsPresent(commandArray)) {
             String unit = commandArray.popFront().inputString();
             Instant expTime = getKeyExpireTime(commandArray, unit.toLowerCase());
+            logger.log(Level.INFO, "Adding key %s value %s with expiry %d".formatted(key.toString(), value.toString(), expTime.toEpochMilli()));
             Set(key, value, expTime);
             return;
         }
+        logger.log(Level.INFO, "Adding key %s value %s without expiry".formatted(key.toString(), value.toString()));
         Set(key, value);
     }
 

@@ -76,7 +76,7 @@ public class RedisClient implements Runnable {
         logger.log(Level.INFO, "Handling GET operation for key %s".formatted(key.toString()));
         RespData value = db.get(key);
         if (keyExpired(key) || value == null) {
-            value = NULLBULKRESP;
+            value = new RespNullMessage();
         }
         write(value);
     }

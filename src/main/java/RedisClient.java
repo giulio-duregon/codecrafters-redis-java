@@ -63,7 +63,7 @@ public class RedisClient implements Runnable {
 
     private boolean keyExpired(RespData key) {
         Instant value = this.keyExpiry.get(key);
-        if (value != null && value.isBefore(Instant.now())) {
+        if (value != null || value.isBefore(Instant.now())) {
             this.db.remove(key);
             this.keyExpiry.remove(key);
             return true;

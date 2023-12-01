@@ -248,9 +248,12 @@ public class RedisClient implements Runnable {
                 if (inputLine.isEmpty()) {
                     continue;
                 }
+                // Parse message sent from input stream into array of commands
                 RespArray commandArray = (RespArray) parse(inputLine);
+                // Retrieve the command operation (GET,SET, ...)
                 RespBulkString rawCommand = commandArray.popFront();
                 command = parseCommand(rawCommand.inputString());
+                // Handle the command appropriately
                 handleCommand(command, commandArray);
             }
         } catch (IOException e) {

@@ -81,7 +81,7 @@ public class RedisClient implements Runnable {
         if (this.config.isPresent()) {
             value = parseConfigCommand(attribute);
         }
-        
+
         // Write out in the form of respArray
         write(new RespArray(List.of(attribute, value)));
 
@@ -188,6 +188,20 @@ public class RedisClient implements Runnable {
         Set(key, value);
     }
 
+    private void writeAllKeys() throws IOException {
+        List<RespData> outputArr = new ArrayList<>();
+        db.keySet().stream().map(outputArr::add);
+        write(new RespArray(outputArr));
+    }
+
+    private void handleKeys(RespArray commandArray) throws IOException {
+        String keyArgument = commandArray.popFront().inputString();
+        logger.info("Handling KEYS command, Argument=%s".formatted(keyArgument));
+        if (keyArgument.equals("*")) {
+            writeAllKeys();
+        }
+    }
+
     private void handleCommand(RedisCommands command, RespArray commandArray) throws IOException {
         switch (command) {
             case PING -> handlePing();
@@ -195,6 +209,7 @@ public class RedisClient implements Runnable {
             case SET -> handleSet(commandArray);
             case GET -> handleGet(commandArray.popFront());
             case CONFIG -> handleConfig(commandArray);
+            case KEYS -> handleKeys(commandArray);
         }
     }
 

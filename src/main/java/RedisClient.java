@@ -267,6 +267,7 @@ public class RedisClient implements Runnable {
 
     private void close() {
         try {
+            logger.info("Closing input and output streams");
             in.close();
             out.close();
         } catch (IOException e) {

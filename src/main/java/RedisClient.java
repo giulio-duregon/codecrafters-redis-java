@@ -46,6 +46,12 @@ public class RedisClient implements Runnable {
 
     private void initConfig() throws IOException {
         if (config.isPresent()) {
+            logger.info("Loading db with dir=%s, dbfilename=%s"
+                    .formatted(
+                            config.get().dir(),
+                            config.get().fileName()
+                    )
+            );
             RedisDbLoader dbLoader = new RedisDbLoader(config.get().getFilePath(), this.db, this.keyExpiry);
             dbLoader.init();
         }

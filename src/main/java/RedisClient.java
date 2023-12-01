@@ -234,7 +234,7 @@ public class RedisClient implements Runnable {
             case '$' -> request = new RespBulkString(in.readLine());
             // Resp Array
             case '*' -> request = parseRespArray(Character.getNumericValue(s.charAt(1)));
-            //
+            // Other Resp Types not implemented in this exercise
             default -> request = NULLBULKRESP;
         }
         return request;

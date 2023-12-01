@@ -72,6 +72,10 @@ public class RedisDbLoader {
 
     private void loadKeyAndPut(byte b) throws IOException {
         Map.Entry<RespBulkString, RespBulkString> keyValuePair = loadKey(b);
+        logger.info("Putting Key=%s Value=%s"
+                .formatted(
+                        keyValuePair.getKey().inputString(),
+                        keyValuePair.getValue().inputString()));
         this.db.put(keyValuePair.getKey(), keyValuePair.getValue());
     }
 

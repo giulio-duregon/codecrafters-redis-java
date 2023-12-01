@@ -4,6 +4,7 @@ import java.io.*;
 import java.net.Socket;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
@@ -57,20 +58,32 @@ public class RedisClient implements Runnable {
         }
     }
 
+    private RespData parseConfigCommand(RespBulkString command) {
+        String cmd = command.inputString();
+        RespData value = new RespNullMessage();
+        if (cmd.equals("dir")) {
+            value = new RespBulkString(config.get().dir());
+        } else if (cmd.equals("filename")) {
+            value = new RespBulkString(config.get().fileName());
+        }
+        return value;
+    }
+
     private void handleConfig(RespArray commandArray) throws IOException {
         // Only supporting GET operation
         String operation = commandArray.popFront().inputString();
-        String command = commandArray.popFront().inputString();
-        logger.info("Handling CONFIG command, Operation=%s, Command=%s".formatted(operation, command));
+        // Identify the config attribute requested
+        RespBulkString attribute = commandArray.popFront();
+        logger.info("Handling CONFIG command, Operation=%s, Attribute=%s".formatted(operation, attribute.inputString()));
+
+        // Retrieve attribute value from config
+        RespData value = new RespNullMessage();
         if (this.config.isPresent()) {
-            if (command.equals("dir")) {
-                write(new RespBulkString(config.get().dir()));
-            } else if (command.equals("filename")) {
-                write(new RespBulkString(config.get().fileName()));
-            }
-        } else {
-            write(NULLBULKRESP);
+            value = parseConfigCommand(attribute);
         }
+        
+        // Write out in the form of respArray
+        write(new RespArray(List.of(attribute, value)));
 
     }
 

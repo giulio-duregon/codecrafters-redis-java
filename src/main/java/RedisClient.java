@@ -191,8 +191,7 @@ public class RedisClient implements Runnable {
     }
 
     private void writeAllKeys() throws IOException {
-        List<RespData> outputArr = new ArrayList<>();
-        db.keySet().stream().map(outputArr::add);
+        List<RespData> outputArr = new ArrayList<>(db.keySet());
         logger.info("Writing %d keys".formatted(outputArr.size()));
         write(new RespArray(outputArr));
     }

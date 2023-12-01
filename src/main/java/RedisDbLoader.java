@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Map;
@@ -87,12 +88,23 @@ public class RedisDbLoader {
         return Map.entry(keyString, valueString);
     }
 
+    private ByteBuffer keyTimeParserHelper(boolean inSeconds) {
+        int size = 8;
+        if (inSeconds) {
+            size = 4;
+        }
+        return ByteBuffer.wrap(readByteArray(size)).order(ByteOrder.LITTLE_ENDIAN);
+    }
+
     private Instant parseKeyTime(boolean inSeconds) {
+        // Read byte Buffer to little endian format
+        ByteBuffer tempBuffer = keyTimeParserHelper(inSeconds);
+
         Instant expTimeMillis = null;
         if (inSeconds) {
-            expTimeMillis = Instant.ofEpochSecond(Integer.toUnsignedLong(readInt()));
+            expTimeMillis = Instant.ofEpochSecond(Integer.toUnsignedLong(tempBuffer.getInt()));
         } else {
-            expTimeMillis = Instant.ofEpochMilli(readLong());
+            expTimeMillis = Instant.ofEpochMilli(tempBuffer.getLong());
         }
         return expTimeMillis;
     }

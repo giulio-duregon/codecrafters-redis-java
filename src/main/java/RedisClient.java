@@ -4,10 +4,16 @@ import java.io.*;
 import java.net.Socket;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static resp.RedisCommands.CONFIG;
+import static resp.RedisCommands.ECHO;
+import static resp.RedisCommands.GET;
+import static resp.RedisCommands.PING;
+import static resp.RedisCommands.SET;
 import static resp.RedisCommands.*;
 import static resp.RespConstants.*;
 
@@ -16,31 +22,65 @@ public class RedisClient implements Runnable {
     private final Socket socket;
     private final BufferedReader in;
     private final BufferedWriter out;
+    private final Optional<RdbConfig> config;
 
     private final ConcurrentHashMap<RespData, RespData> db;
     private final ConcurrentHashMap<RespData, Instant> keyExpiry;
 
     public RedisClient(Socket socket,
                        ConcurrentHashMap<RespData, RespData> db,
-                       ConcurrentHashMap<RespData, Instant> keyExpiry) throws IOException {
+                       ConcurrentHashMap<RespData, Instant> keyExpiry,
+                       Optional<RdbConfig> config) throws IOException {
         this.socket = socket;
         this.in = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
         this.out = new BufferedWriter(new OutputStreamWriter(this.socket.getOutputStream()));
         this.db = db;
         this.keyExpiry = keyExpiry;
+        this.config = config;
+        try {
+            initConfig();
+        } catch (IOException e) {
+            logger.info("Exception when calling initconfig(), %s".formatted(e.getMessage()));
+        }
+    }
+
+    private void initConfig() throws IOException {
+        if (config.isPresent()) {
+            RedisDbLoader dbLoader = new RedisDbLoader(config.get().getFilePath(), this.db, this.keyExpiry);
+            dbLoader.init();
+        }
+    }
+
+    private void handleConfig(RespArray commandArray) throws IOException {
+        // Only supporting GET operation
+        String operation = commandArray.popFront().inputString();
+        String command = commandArray.popFront().inputString();
+        logger.info("Handling CONFIG command, Operation=%s, Command=%s".formatted(operation, command));
+        if (this.config.isPresent()) {
+            if (command.equals("dir")) {
+                write(new RespBulkString(config.get().dir()));
+            } else if (command.equals("filename")) {
+                write(new RespBulkString(config.get().fileName()));
+            }
+        } else {
+            write(NULLBULKRESP);
+        }
+
     }
 
     private RedisCommands parseCommand(String data) {
         String commandString = data.toLowerCase();
         RedisCommands command;
-        if (commandString.equals("ping")) {
+        if (commandString.equals(RespConstants.PING)) {
             command = PING;
-        } else if (commandString.equals("echo")) {
+        } else if (commandString.equals(RespConstants.ECHO)) {
             command = ECHO;
-        } else if (commandString.equals("get")) {
+        } else if (commandString.equals(RespConstants.GET)) {
             command = GET;
-        } else if (commandString.equals("set")) {
+        } else if (commandString.equals(RespConstants.SET)) {
             command = SET;
+        } else if (commandString.equals(RespConstants.CONFIG)) {
+            command = CONFIG;
         } else {
             command = INVALID;
         }
@@ -89,10 +129,10 @@ public class RedisClient implements Runnable {
         // Parse the arguments to determine unit of time for key expiry
 
         // MilliSeconds
-        if (unit.equals("px")) {
+        if (unit.equals(PX)) {
             return Instant.ofEpochMilli(Integer.parseUnsignedInt(commandArr.popFront().inputString()));
             // Seconds
-        } else if (unit.equals("ex")) {
+        } else if (unit.equals(EX)) {
             return Instant.ofEpochSecond(Integer.parseUnsignedInt(commandArr.popFront().inputString()));
         }
         // Unsure of difference between PX / EXAT args
@@ -135,6 +175,7 @@ public class RedisClient implements Runnable {
             case ECHO -> handleEcho(commandArray.popFront());
             case SET -> handleSet(commandArray);
             case GET -> handleGet(commandArray.popFront());
+            case CONFIG -> handleConfig(commandArray);
         }
     }
 

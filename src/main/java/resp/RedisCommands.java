@@ -5,5 +5,7 @@ public enum RedisCommands {
     ECHO,
     SET,
     GET,
-    INVALID;
+    KEYS,
+    CONFIG,
+    INVALID
 }

@@ -100,6 +100,8 @@ public class RedisClient implements Runnable {
             command = SET;
         } else if (commandString.equals(RespConstants.CONFIG)) {
             command = CONFIG;
+        } else if (commandString.equals(RespConstants.KEYS)) {
+            command = RedisCommands.KEYS;
         } else {
             command = INVALID;
         }

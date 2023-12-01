@@ -12,6 +12,7 @@ public class RespConstants {
     public static final String ECHO = "echo";
     public static final String SET = "set";
     public static final String GET = "get";
+    public static final String KEYS = "keys";
 
     public static final byte EOF = (byte) 0xFF;
     public static final byte SELECTDB = (byte) 0xFE;

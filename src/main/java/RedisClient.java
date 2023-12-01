@@ -232,7 +232,9 @@ public class RedisClient implements Runnable {
             case '+' -> request = new RespSimpleString(s.substring(1, s.length() - 2));
             // Resp Bulk String
             case '$' -> request = new RespBulkString(in.readLine());
+            // Resp Array
             case '*' -> request = parseRespArray(Character.getNumericValue(s.charAt(1)));
+            //
             default -> request = NULLBULKRESP;
         }
         return request;
